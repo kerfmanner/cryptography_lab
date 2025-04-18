@@ -50,8 +50,26 @@ def encrypt_message(public_key, encoded_message):
     return b"".join(encrypted_message)
 ```
 
-Функція `encrypt_message` розбиває повідомлення на блоки, додає паддинг та шифрує кожен блок окремо за допомогою RSA алгоритму.
+Функція `encrypt_message` розбиває повідомлення на блоки, додає паддинг та шифрує кожен блок окремо за допомогою RSA алгоритму. Паддинг додається за стандартом PKCS#5, якій працює так, ми додаємо в кінець стільки байтів скільки нам не вистачає, і кожен з цих байтів має значення, яке дорівнює кількості байтів, яких не вистачає до повного блоку. Якщо ж повідомлення розбивається на блоки націло, то в кінці додається цілий блок з байтами зі значенням розміру блока. Це зроблено, щоб потім забирати паддинг лише забираючи кількість останнійх байтів, яка задана останнім байтом.
 
+```python
+def decrypt_message(public_key, private_key, encrypted_message):
+    """Decrypt the message using RSA."""
+    encrypted_blocks = get_encrypted_blocks_from_bytes(encrypted_message)
+    block_byte_size = get_block_size(public_key[0])
+    decrypted_message = b""
+
+    while encrypted_blocks:
+        encr_block_num = int.from_bytes(encrypted_blocks.pop(0))
+        decrypted_block_num = pow(encr_block_num, private_key, public_key[0])
+        decrypted_block = decrypted_block_num.to_bytes(block_byte_size)
+        decrypted_message += decrypted_block
+
+    decrypted_message = get_rid_of_padding(decrypted_message)
+    return decrypted_message
+```
+
+Функія `decrypt_message` спершу розбиває на блоки розміру 256, адже нам потрібно отримати значення(числа), у які ми зашифрували кожен блок повідомлення. Далі розшифровуємо кожен блок і додаємо до повідомлення. В кінці забираємо паддинг. Повертаємо повідомлення.
 ### Хешування SHA-256 для перевірки цілісності
 
 ```python
